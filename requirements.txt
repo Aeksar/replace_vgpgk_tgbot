@@ -1,0 +1,7 @@
+aiogram
+pydantic
+python-docx
+asyncio
+requests
+pydantic_settings
+aiohttp
