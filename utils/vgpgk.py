@@ -1,5 +1,5 @@
 import requests
-# from config.conf import logger
+from config.conf import logger
 from docx import Document
 from aiogram import Bot
 from comtypes.client import CreateObject
@@ -8,24 +8,6 @@ import asyncio
 import aiohttp
 import hashlib
 import os
-import logging
-import sys
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="[{asctime}] #{levelname} {filename} ({lineno}): {message}",
-    style='{'
-)
-
-logger = logging.getLogger(__name__)
-
-file_h = logging.FileHandler('logs.log', mode='w')
-stdout_h = logging.StreamHandler(sys.stdout)
-
-logger.addHandler(file_h)
-logger.addHandler(stdout_h)
-
-logger.debug('logger active')
 
 
 class vgpgk:
@@ -148,6 +130,7 @@ class vgpgk:
 async def sheduled_replace(vgpgk_obj: vgpgk, interval: int = 60):
     while True:
         try:
+            await asyncio.sleep(interval)
             if await vgpgk_obj.download_replace():
                 logger.info('Замены обновлены автоматически')
                 if vgpgk.bot:
@@ -159,7 +142,7 @@ async def sheduled_replace(vgpgk_obj: vgpgk, interval: int = 60):
         except Exception as e:
             logger.error(f"Ошибка при автоматическом обновлении замен {e}")
             
-        await asyncio.sleep(interval)
+
             
 if __name__=="__main__":
     replace_data = vgpgk.get_replace("ИС-223")
