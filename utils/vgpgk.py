@@ -1,5 +1,4 @@
 import requests
-from config.conf import logger
 from docx import Document
 from aiogram import Bot
 from comtypes.client import CreateObject
@@ -9,6 +8,9 @@ import aiohttp
 import hashlib
 import os
 
+from config.conf import logger
+from dbs.conf_redis import get_redis_client
+from dbs.mongo import Group, mongo
 
 class vgpgk:
 
@@ -16,12 +18,6 @@ class vgpgk:
     _doc = os.path.abspath('.\\files\\zameni.doc')
     _docx = os.path.abspath('.\\files\\norm-zameni.docx')
     _hash_file = os.path.abspath('.\\files\\zameni.doc.sha256')
-    bot = None
-
-
-    def __init__(self, bot: Bot):
-        vgpgk.bot = bot
-
 
     @classmethod
     def _calculate_sha256(cls, filepath: str) -> str:
@@ -40,9 +36,9 @@ class vgpgk:
     @classmethod
     def _save_hash(cls, hash_val: str) -> None:
         try:
-            with open(cls._hash_file, 'w') as f:
-                f.write(hash_val)
-            logger.debug(f'Хеш сохранен в {cls._hash_file}')
+            client = get_redis_client()
+            client.set('zam_hash', hash_val)
+            logger.debug(f'Хеш сохранен в {hash_val}')
         except Exception as e:
             logger.error(f'Пролемы с сохранением хеша: {e}')
             
@@ -50,16 +46,13 @@ class vgpgk:
     @classmethod
     def _load_hash(cls) -> Optional[str]:
         try:
-            with open(cls._hash_file, "r") as f:
-                hash_val = f.read()
-            logger.debug(f"Хеш прочитан для {cls._hash_file}")
+            client = get_redis_client()
+            hash_val = client.get('zam_hash')
+            logger.debug(f"Хеш прочитан {hash_val}")
             return hash_val
-        except FileNotFoundError as e:
-            logger.error(f'Файл с хешом не найден: {cls._hash_file}')
-            raise e
         except Exception as e:
             logger.error(f"Ошибка при сохранении хеша: {e}")
-
+            return None
 
     @classmethod
     async def download_replace(cls) -> None:
@@ -71,9 +64,11 @@ class vgpgk:
                     response.raise_for_status()
                     logger.info('Отправлен запрос на получение замен')
                     
-                    with open(cls._doc, "wb") as f:
-                        async for chunk in response.content.iter_chunked(8192):
-                            f.write(chunk)
+                    client = get_redis_client()
+                    hash_val = b""
+                    async for chunk in response.content.iter_chunked(1024):
+                        hash_val += chunk
+                    client.set('new_zam_hash', hash_val)
             
             new_hash = cls._calculate_sha256(cls._doc)
             
@@ -83,7 +78,7 @@ class vgpgk:
             if new_hash != old_hash:
                 cls._save_hash(new_hash)
                 cls.convert_doc_to_docx(cls._doc, cls._docx)
-                logger.info('Замены обновлены')
+                logger.info(f'Замены обновлены\n{new_hash}\n{old_hash}')
                 return True
             else:
                 logger.info('Замены те же')
@@ -127,18 +122,22 @@ class vgpgk:
 
 
 
-async def sheduled_replace(vgpgk_obj: vgpgk, interval: int = 60):
+async def sheduled_replace(bot: Bot, interval: int = 10):
     while True:
         try:
             await asyncio.sleep(interval)
-            if await vgpgk_obj.download_replace():
-                logger.info('Замены обновлены автоматически')
-                if vgpgk.bot:
-                    await vgpgk.bot.send_message(chat_id='844995210', text='Замены обновлены')
-                else:
-                    logger.warning('Бот не инициализирован')
+            if await vgpgk.download_replace():
+                groups = await mongo.get_all_groups()
+                for group in groups:
+                    group_replace = vgpgk.get_replace(group.group_name)
+                    for chat in group.chats:
+                        await bot.send_message(chat_id=chat, text=f'{group_replace[0]}\n{group_replace[1]}')
             else:
-                await vgpgk.bot.send_message(chat_id='844995210', text='Замены не изменились')
+                groups = await mongo.get_all_groups()
+                for group in groups:
+                    group_replace = vgpgk.get_replace(group.group_name)
+                    for chat in group.chats:
+                        await bot.send_message(chat_id=chat, text='Файл с заменами не был изменен')
         except Exception as e:
             logger.error(f"Ошибка при автоматическом обновлении замен {e}")
             

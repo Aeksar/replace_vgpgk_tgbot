@@ -5,3 +5,7 @@ asyncio
 requests
 pydantic_settings
 aiohttp
+comtypes
+redis
+beanie
+aioredis

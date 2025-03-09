@@ -1,20 +1,25 @@
 from aiogram import Bot, Dispatcher
-from config.conf import environ
+from aiogram.fsm.storage.redis import RedisStorage
 import asyncio
 
 from handlers.game_handlers import game_rout
-from utils.vgpgk import vgpgk, sheduled_replace
+from dbs.mongo import mongo
+from dbs.conf_redis import get_redis_client
+from config.conf import environ
 
+redis_client = get_redis_client()
+storage = RedisStorage(redis=redis_client)
 
 bot = Bot(token=environ.TOKEN)
-dp = Dispatcher()
-vgpgk_obj = vgpgk(bot)
-
+dp = Dispatcher(storage=storage)
 
 dp.include_router(game_rout)
 
-
 async def main():
+    
+    
+    
+    await mongo.initilization()
     await dp.start_polling(bot)
     
     

@@ -7,6 +7,13 @@ import sys
 class Environ(BaseSettings):
     TOKEN: str
     
+    R_PORT: int
+    R_HOST: str
+    R_DB: int
+    
+    MONGO_URL: str
+    
+    
     model_config = SettingsConfigDict(
         env_file = ".env"
     )
