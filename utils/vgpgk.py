@@ -18,7 +18,9 @@ class vgpgk:
     _doc = os.path.abspath('.\\files\\zameni.doc')
     _docx = os.path.abspath('.\\files\\norm-zameni.docx')
     _hash_file = os.path.abspath('.\\files\\zameni.doc.sha256')
-
+    client = get_redis_client()
+    
+    
     @classmethod
     def _calculate_sha256(cls, filepath: str) -> str:
         sha256_hash = hashlib.sha256()
@@ -26,7 +28,7 @@ class vgpgk:
             with open(filepath, "rb") as f:
                 for chunk in iter(lambda: f.read(), b""):
                     sha256_hash.update(chunk)
-            logger.debug(f'Хеш посчитан для {filepath}')
+            logger.debug(f'Хеш посчитан для {filepath}\n {sha256_hash.hexdigest()}')
             return sha256_hash.hexdigest()
         
         except Exception as e:
@@ -34,20 +36,18 @@ class vgpgk:
             
         
     @classmethod
-    def _save_hash(cls, hash_val: str) -> None:
+    async def _save_hash(cls, hash_val: str) -> None:
         try:
-            client = get_redis_client()
-            client.set('zam_hash', hash_val)
-            logger.debug(f'Хеш сохранен в {hash_val}')
+            await cls.client.set('zam_hash', hash_val)
+            logger.debug(f'Хеш сохранен {hash_val}')
         except Exception as e:
             logger.error(f'Пролемы с сохранением хеша: {e}')
             
     
     @classmethod
-    def _load_hash(cls) -> Optional[str]:
+    async def _load_hash(cls) -> Optional[str]:
         try:
-            client = get_redis_client()
-            hash_val = client.get('zam_hash')
+            hash_val = await cls.client.get('zam_hash')
             logger.debug(f"Хеш прочитан {hash_val}")
             return hash_val
         except Exception as e:
@@ -56,7 +56,7 @@ class vgpgk:
 
     @classmethod
     async def download_replace(cls) -> None:
-        old_hash = cls._load_hash()
+        old_hash = await cls._load_hash()
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(cls._url) as response:
@@ -64,11 +64,10 @@ class vgpgk:
                     response.raise_for_status()
                     logger.info('Отправлен запрос на получение замен')
                     
-                    client = get_redis_client()
                     hash_val = b""
                     async for chunk in response.content.iter_chunked(1024):
                         hash_val += chunk
-                    client.set('new_zam_hash', hash_val)
+                    await cls.client.set('new_zam_hash', hash_val)
             
             new_hash = cls._calculate_sha256(cls._doc)
             
@@ -76,12 +75,12 @@ class vgpgk:
                 logger.error('Проблемы с рассчетом новго хеша')
                 return False
             if new_hash != old_hash:
-                cls._save_hash(new_hash)
+                await cls._save_hash(new_hash)
                 cls.convert_doc_to_docx(cls._doc, cls._docx)
                 logger.info(f'Замены обновлены\n{new_hash}\n{old_hash}')
                 return True
             else:
-                logger.info('Замены те же')
+                logger.info('Замены не были изменены')
                 return False
         except Exception as e:
             logger.error(f"Ошибка при скачивании файла: {e}")
@@ -138,6 +137,7 @@ async def sheduled_replace(bot: Bot, interval: int = 10):
                     group_replace = vgpgk.get_replace(group.group_name)
                     for chat in group.chats:
                         await bot.send_message(chat_id=chat, text='Файл с заменами не был изменен')
+            logger.info("Замены отправлены")
         except Exception as e:
             logger.error(f"Ошибка при автоматическом обновлении замен {e}")
             

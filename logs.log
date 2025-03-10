@@ -1,24 +1,4 @@
-[2025-03-09 19:16:06,512] #DEBUG conf.py (44): logger active фыафврп
-[2025-03-09 19:16:06,687] #DEBUG conf_redis.py (13): Установленно соединение с Redis
-[2025-03-09 19:16:06,964] #DEBUG set_mongodb.py (29): Установлено подключение к MongoDB
-[2025-03-09 19:16:14,564] #INFO set_mongodb.py (51): Попытка добавления существующего чата 844995210
-[2025-03-09 19:16:24,580] #DEBUG conf_redis.py (13): Установленно соединение с Redis
-[2025-03-09 19:16:24,580] #DEBUG vgpgk.py (51): Хеш прочитан <coroutine object Redis.execute_command at 0x0000016F66B449D0>
-[2025-03-09 19:16:24,761] #INFO vgpgk.py (65): Отправлен запрос на получение замен
-[2025-03-09 19:16:24,761] #DEBUG conf_redis.py (13): Установленно соединение с Redis
-[2025-03-09 19:16:25,166] #DEBUG vgpgk.py (29): Хеш посчитан для C:\Users\skosh\lern\pythonlern\aiogram\zameni_bot\files\zameni.doc
-[2025-03-09 19:16:25,166] #DEBUG conf_redis.py (13): Установленно соединение с Redis
-[2025-03-09 19:16:25,167] #DEBUG vgpgk.py (41): Хеш сохранен в 7d3f26c1bd5dd613c64b6c93036b5205faeeedf15461e4c1ae6bc6501589a6a8
-[2025-03-09 19:16:31,736] #INFO vgpgk.py (81): Замены обновлены
-7d3f26c1bd5dd613c64b6c93036b5205faeeedf15461e4c1ae6bc6501589a6a8
-<coroutine object Redis.execute_command at 0x0000016F66B449D0>
-[2025-03-09 19:16:41,998] #DEBUG conf_redis.py (13): Установленно соединение с Redis
-[2025-03-09 19:16:41,998] #DEBUG vgpgk.py (51): Хеш прочитан <coroutine object Redis.execute_command at 0x0000016F66B44D00>
-[2025-03-09 19:16:42,103] #INFO vgpgk.py (65): Отправлен запрос на получение замен
-[2025-03-09 19:16:42,104] #DEBUG conf_redis.py (13): Установленно соединение с Redis
-[2025-03-09 19:16:42,128] #DEBUG vgpgk.py (29): Хеш посчитан для C:\Users\skosh\lern\pythonlern\aiogram\zameni_bot\files\zameni.doc
-[2025-03-09 19:16:42,129] #DEBUG conf_redis.py (13): Установленно соединение с Redis
-[2025-03-09 19:16:42,129] #DEBUG vgpgk.py (41): Хеш сохранен в 7d3f26c1bd5dd613c64b6c93036b5205faeeedf15461e4c1ae6bc6501589a6a8
-[2025-03-09 19:16:45,207] #INFO vgpgk.py (81): Замены обновлены
-7d3f26c1bd5dd613c64b6c93036b5205faeeedf15461e4c1ae6bc6501589a6a8
-<coroutine object Redis.execute_command at 0x0000016F66B44D00>
+[2025-03-10 18:47:14,532] #DEBUG conf.py (44): logger active фыафврп
+[2025-03-10 18:47:14,705] #DEBUG conf_redis.py (14): Установленно соединение с Redis
+[2025-03-10 18:47:14,709] #DEBUG conf_redis.py (14): Установленно соединение с Redis
+[2025-03-10 18:47:15,041] #DEBUG set_mongodb.py (29): Установлено подключение к MongoDB

@@ -11,6 +11,7 @@ import asyncio
 
 from utils.vgpgk import vgpgk, sheduled_replace
 from states.game_state import BotStates
+from filters import GroupFilter
 from dbs.mongo import mongo, Group
 
 game_rout = Router()
@@ -42,7 +43,7 @@ async def give_repl(call: CallbackQuery, state: FSMContext):
     await state.clear()
 
 
-@game_rout.message(BotStates.replaces)
+@game_rout.message(BotStates.replaces, GroupFilter())
 async def give_repl_msg(msg: Message, state: FSMContext):
     group = msg.text.upper()
     data = vgpgk.get_replace(group)
@@ -54,21 +55,21 @@ async def give_repl_msg(msg: Message, state: FSMContext):
         
     await state.clear()
     
+@game_rout.message(BotStates.replaces)
+async def wrong_group(msg: Message):
+    await msg.answer('Введите корректное название группы:\n XX-000')
     
 @game_rout.message(Command("letter"))
 async def start_letter(msg: Message, state: FSMContext):
     await msg.answer("ВВедите название группы")
     await state.set_state(BotStates.letter)
     
-@game_rout.message(BotStates.letter)
+@game_rout.message(BotStates.letter, )
 async def sub_to_letter(msg: Message, bot: Bot, state: FSMContext):
     await state.clear()
     chat_id = msg.chat.id
     group = msg.text.upper()
     status = await mongo.add_chat(group, chat_id)
-    print('-------------------------')
-    print(status)
-    print('-----------------------------')
     if status:
         asyncio.create_task(sheduled_replace(bot))
         await msg.answer('Группа подписана на рассылку')

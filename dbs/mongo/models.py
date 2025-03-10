@@ -1,8 +1,8 @@
-from beanie import Document
-from typing import List
+from beanie import Document, Indexed
+from typing import List, Annotated
 
 class Group(Document):
-    group_name: str
+    group_name: Annotated[str, Indexed()]
     chats: List[int]
     
     class Settings:

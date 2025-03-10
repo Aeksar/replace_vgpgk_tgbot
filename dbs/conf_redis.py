@@ -8,7 +8,8 @@ def get_redis_client(host=environ.R_HOST, port=environ.R_PORT, db=environ.R_DB) 
         redis_conn = Redis(
             host=host,
             port=port,
-            db=db
+            db=db,
+            decode_responses=True
         )
         logger.debug('Установленно соединение с Redis')
         return redis_conn
@@ -18,13 +19,20 @@ def get_redis_client(host=environ.R_HOST, port=environ.R_PORT, db=environ.R_DB) 
         raise
     
 if __name__ == "__main__":
-    try:
-        redis_client = get_redis_client() 
+    import asyncio
+    async def main():
+        try:
+            redis_client = Redis(
+                decode_responses=True
+            )
 
+            
+            await redis_client.set('mykey', 'myvalue')
+            value = await redis_client.get('mykey')
+            await redis_client.delete('mykey')
+            print(f"Значение по ключу 'mykey': {value}")
+
+        except Exception as e:
+            print(f"Не удалось установить соединение с Redis. {e}")
         
-        redis_client.set('mykey', 'myvalue')
-        value = redis_client.get('mykey')
-        print(f"Значение по ключу 'mykey': {value}")
-
-    except Exception as e:
-        print(f"Не удалось установить соединение с Redis. {e}")
+    asyncio.run(main())
