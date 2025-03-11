@@ -1,11 +1,11 @@
 import requests
 from docx import Document
 from aiogram import Bot
-from comtypes.client import CreateObject
 from typing import Optional, List
 import asyncio
 import aiohttp
 import hashlib
+import subprocess
 import os
 
 from config.conf import logger
@@ -16,7 +16,7 @@ class vgpgk:
 
     _url = "https://vgpgk.ru/raspisanie/vgpgk-zameny-1-korpus.doc?v=2023011141816"
     _doc = os.path.abspath('.\\files\\zameni.doc')
-    _docx = os.path.abspath('.\\files\\norm-zameni.docx')
+    _docx = os.path.abspath('.\\files\\zameni.docx')
     _hash_file = os.path.abspath('.\\files\\zameni.doc.sha256')
     client = get_redis_client()
     
@@ -32,14 +32,14 @@ class vgpgk:
             return sha256_hash.hexdigest()
         
         except Exception as e:
-            logger.error(f'Траблы с вычислением хеша: {e}')
+            logger.error(f'Проблемы с вычислением хеша: {e}')
             
         
     @classmethod
     async def _save_hash(cls, hash_val: str) -> None:
         try:
             await cls.client.set('zam_hash', hash_val)
-            logger.debug(f'Хеш сохранен {hash_val}')
+            logger.debug(f'Хеш сохранен в редисе {hash_val}')
         except Exception as e:
             logger.error(f'Пролемы с сохранением хеша: {e}')
             
@@ -51,11 +51,11 @@ class vgpgk:
             logger.debug(f"Хеш прочитан {hash_val}")
             return hash_val
         except Exception as e:
-            logger.error(f"Ошибка при сохранении хеша: {e}")
+            logger.error(f"Ошибка при загрузке хеша: {e}")
             return None
 
     @classmethod
-    async def download_replace(cls) -> None:
+    async def download_replace(cls) -> bool:
         old_hash = await cls._load_hash()
         try:
             async with aiohttp.ClientSession() as session:
@@ -64,13 +64,14 @@ class vgpgk:
                     response.raise_for_status()
                     logger.info('Отправлен запрос на получение замен')
                     
-                    hash_val = b""
-                    async for chunk in response.content.iter_chunked(1024):
-                        hash_val += chunk
-                    await cls.client.set('new_zam_hash', hash_val)
+                    with open(cls._doc, 'wb') as f:
+                        async for chunk in response.content.iter_chunked(1024):
+                            f.write(chunk)
+                            
+                    logger.info('получен новый doc файл')
             
             new_hash = cls._calculate_sha256(cls._doc)
-            
+
             if new_hash is None:
                 logger.error('Проблемы с рассчетом новго хеша')
                 return False
@@ -79,8 +80,11 @@ class vgpgk:
                 cls.convert_doc_to_docx(cls._doc, cls._docx)
                 logger.info(f'Замены обновлены\n{new_hash}\n{old_hash}')
                 return True
+            elif new_hash == old_hash:
+                 logger.info('Замены не были изменены')
+                 return False
             else:
-                logger.info('Замены не были изменены')
+                logger.warning('Проблемы с заменами')
                 return False
         except Exception as e:
             logger.error(f"Ошибка при скачивании файла: {e}")
@@ -89,17 +93,30 @@ class vgpgk:
     @staticmethod
     def convert_doc_to_docx(doc_path: str, docx_path: str) -> None:
         try:
-            word = CreateObject("Word.Application")
-            word.Visible = False
-            doc = word.Documents.Open(doc_path)
-            doc.SaveAs2(docx_path, FileFormat=12)
-            doc.Close()
-            word.Quit()
+            if not os.path.exists(doc_path):
+                logger.error(f"Файл не найден: {doc_path}")
 
-        except Exception as e: 
-            logger.error(f"Ошибка при конвертации: {e}")
-            raise e
+            # soffice_path = r"C:\Program Files\LibreOffice\program\soffice.exe"
+            # if not os.path.exists(soffice_path):
+            #     logger.error("LibreOffice не установлен по указанному пути.")
+            
+            command = [
+                "soffice",
+                "--headless",
+                "--convert-to",
+                "docx",
+                "--outdir",
+                os.path.dirname(docx_path),
+                doc_path,
+            ]
+            subprocess.run(command, check=True, capture_output=True)
 
+            if not os.path.exists(docx_path):
+                logger.error(f"Не удалось преобразовать {doc_path} в {docx_path}. Проверьте логи LibreOffice.")
+
+            logger.info(f"Успешно преобразовано: {doc_path} -> {docx_path}")
+        except Exception as e:
+            logger.error("Ошибка при конвертации файла")
 
     @classmethod
     def get_replace(cls, group_name: str) -> Optional[List[str]]:
@@ -121,7 +138,10 @@ class vgpgk:
 
 
 
-async def sheduled_replace(bot: Bot, interval: int = 10):
+async def sheduled_replace(bot: Bot, interval: int = 1800, __pupupu: list = []):
+    if __pupupu:
+        return
+    __pupupu.append(1)
     while True:
         try:
             await asyncio.sleep(interval)
@@ -131,13 +151,15 @@ async def sheduled_replace(bot: Bot, interval: int = 10):
                     group_replace = vgpgk.get_replace(group.group_name)
                     for chat in group.chats:
                         await bot.send_message(chat_id=chat, text=f'{group_replace[0]}\n{group_replace[1]}')
+                logger.info("Рассылка отправлена")
             else:
-                groups = await mongo.get_all_groups()
-                for group in groups:
-                    group_replace = vgpgk.get_replace(group.group_name)
-                    for chat in group.chats:
-                        await bot.send_message(chat_id=chat, text='Файл с заменами не был изменен')
-            logger.info("Замены отправлены")
+                # groups = await mongo.get_all_groups()
+                # for group in groups:
+                #     group_replace = vgpgk.get_replace(group.group_name)
+                #     for chat in group.chats:
+                #         await bot.send_message(chat_id=chat, text='Файл с заменами не был изменен')
+                logger.info('Замены не изменились, рассылка не отправлена')
+
         except Exception as e:
             logger.error(f"Ошибка при автоматическом обновлении замен {e}")
             

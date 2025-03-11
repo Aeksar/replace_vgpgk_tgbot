@@ -6,7 +6,7 @@ from handlers.game_handlers import game_rout
 from dbs.mongo import mongo
 from dbs.conf_redis import get_redis_client
 from config.conf import environ
-
+from utils.vgpgk import sheduled_replace
 redis_client = get_redis_client()
 storage = RedisStorage(redis=redis_client)
 
@@ -17,8 +17,7 @@ dp.include_router(game_rout)
 
 async def main():
     
-    
-    
+    asyncio.create_task(sheduled_replace(bot))
     await mongo.initilization()
     await dp.start_polling(bot)
     

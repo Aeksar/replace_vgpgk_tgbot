@@ -16,6 +16,7 @@ from dbs.mongo import mongo, Group
 
 game_rout = Router()
 
+
 @game_rout.message(Command('start'))
 async def start_command(msg: Message):
     
@@ -55,27 +56,70 @@ async def give_repl_msg(msg: Message, state: FSMContext):
         
     await state.clear()
     
-@game_rout.message(BotStates.replaces)
-async def wrong_group(msg: Message):
-    await msg.answer('Введите корректное название группы:\n XX-000')
     
-@game_rout.message(Command("letter"))
-async def start_letter(msg: Message, state: FSMContext):
-    await msg.answer("ВВедите название группы")
-    await state.set_state(BotStates.letter)
+@game_rout.callback_query(F.data == 'new_repl')
+@game_rout.message(Command("sub"))
+async def start_mailing(msg: Message | CallbackQuery, state: FSMContext):
+    if isinstance(msg, CallbackQuery):
+        await msg.answer()
+        await msg.message.edit_text("Введите название группы")
+    elif isinstance(msg, Message):
+        await msg.answer("Введите название группы")
+    await state.set_state(BotStates.mailing)
     
-@game_rout.message(BotStates.letter, )
-async def sub_to_letter(msg: Message, bot: Bot, state: FSMContext):
+    
+@game_rout.message(BotStates.mailing, GroupFilter())
+async def sub_to_mailing(msg: Message, bot: Bot, state: FSMContext):
     await state.clear()
     chat_id = msg.chat.id
     group = msg.text.upper()
-    status = await mongo.add_chat(group, chat_id)
-    if status:
-        asyncio.create_task(sheduled_replace(bot))
-        await msg.answer('Группа подписана на рассылку')
+    ok = await mongo.add_chat(group, chat_id)
+    if ok:
+        await msg.answer(f'Вы подписались на рассылку замен для {group}')
         return
-    await msg.answer('Не удалось добавить группу в рассылку')
+    await msg.answer(f'Вы уже подписаны на рассылку замен для {group}')
     
+    
+@game_rout.message(Command("unsub"))
+async def satrt_unsub(msg: Message, state: FSMContext):
+    await msg.answer("Введите название группы")
+    await state.set_state(BotStates.unsub)
+    
+    
+@game_rout.message(BotStates.unsub, GroupFilter())
+async def unsub_to_mailing(msg: Message, state: FSMContext):
+    await state.clear()
+    chat_id = msg.chat.id
+    group = msg.text.upper()
+    ok = await mongo.delete_chat(group, chat_id)
+    if ok:
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text='Да', callback_data='new_repl'), InlineKeyboardButton(text='Нет', callback_data='unluck')]
+        ])
+        await msg.answer('Вы отписались от рассылки замен\nХотите добавить другую группу?', reply_markup=kb)
+    else:
+        await msg.answer('Вы и так не подписаны на рассылку для этой группы')
+
+    
+@game_rout.callback_query(F.data == 'unluck')
+async def gg(call: CallbackQuery):
+    await call.message.edit_text('Пидора ответ')
+
+@game_rout.message(BotStates.unsub)
+@game_rout.message(BotStates.replaces)
+async def wrong_group(msg: Message):
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text='Отмена', callback_data='cancel')]
+    ])
+    await msg.answer('Введите корректное название группы:\n XX-000', reply_markup=kb)
+    
+
+@game_rout.callback_query(F.data == 'cancel')
+async def cancel_hand(call: CallbackQuery, state: FSMContext):
+    await call.answer()
+    await call.message.delete()
+    await state.clear()
+
 
 @game_rout.message(Command('refresh'))
 async def new_repl(msg: Message):

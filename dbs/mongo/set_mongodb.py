@@ -73,12 +73,12 @@ class Mongo:
                 
             if not doc.chats:
                 await doc.delete()
-            else:
-                doc.save()
                 logger.debug(f"Группа {group_name} без чатов удалена")
+            else:
+                await doc.save()
             return True
         else:
-            logger.info("Попытка удаления чата из несуществующего документа")
+            logger.warning("Попытка удаления чата из несуществующего документа")
             return False
         
     @staticmethod
@@ -88,6 +88,6 @@ class Mongo:
             return groups
         except Exception as e:
             logger.error(f"Ошибка при получении всех групп: {e}")
-            return []
+            raise
    
 mongo = Mongo()

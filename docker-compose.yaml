@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  mongo-bot:
+    image: mongo:8.0.5
+    container_name: mongo-bot
+    env_file:
+      - mongo.env
+    ports:
+      - 27017:27017
+
+  redis-bot:
+    image: redis:latest
+    container_name: redis-bot
+
+  bot:
+    build: .
+    container_name: bot
+    env_file:
+      - .env
+    depends_on:
+      - mongo-bot
+      - redis-bot
+      
+
+
