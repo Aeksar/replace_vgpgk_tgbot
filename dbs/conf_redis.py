@@ -2,12 +2,14 @@ from redis.asyncio.client import Redis
 
 from config.conf import environ, logger
 
-def get_redis_client(host=environ.R_HOST, port=environ.R_PORT, db=environ.R_DB) -> Redis:
+def get_redis_client(host=environ.R_HOST, port=environ.R_PORT, db=environ.R_DB, password=environ.R_PASS, username=environ.R_USER) -> Redis:
     
     try:
         redis_conn = Redis(
             host=host,
             port=port,
+            password=password,
+            username=username,
             db=db,
             decode_responses=True
         )
