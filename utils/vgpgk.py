@@ -15,8 +15,8 @@ from dbs.mongo import Group, mongo
 class vgpgk:
 
     _url = "https://vgpgk.ru/raspisanie/vgpgk-zameny-1-korpus.doc?v=2023011141816"
-    _doc = os.path.abspath('./files/zameni.doc')
-    _docx = os.path.abspath('./files/zameni.docx')
+    _doc = os.path.abspath(r'.\files\zameni.doc')
+    _docx = os.path.abspath(r'.\files\zameni.docx')
     _hash_file = os.path.abspath('./files/zameni.doc.sha256')
     client = get_redis_client()
     
@@ -96,12 +96,12 @@ class vgpgk:
             if not os.path.exists(doc_path):
                 logger.error(f"Файл не найден: {doc_path}")
 
-            # soffice = r"C:\Program Files\LibreOffice\program\soffice.exe"
-            # if not os.path.exists(soffice):
-            #     logger.error("LibreOffice не установлен по указанному пути.")
+            soffice = r"C:\Program Files\LibreOffice\program\soffice.exe"
+            if not os.path.exists(soffice):
+                logger.error("LibreOffice не установлен по указанному пути.")
             
             command = [
-                "soffice",
+                soffice,
                 "--headless",
                 "--convert-to",
                 "docx",
