@@ -1,4 +1,1 @@
-[2025-03-12 22:01:21,217] #DEBUG conf.py (49): logger active
-[2025-03-12 22:01:21,357] #DEBUG conf_redis.py (14): Установленно соединение с Redis
-[2025-03-12 22:01:21,361] #DEBUG conf_redis.py (14): Установленно соединение с Redis
-[2025-03-12 22:01:51,613] #ERROR set_mongodb.py (32): Ошибка подключения к MongoDB: mongo-bot:27017: [Errno 11001] getaddrinfo failed (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms), Timeout: 30s, Topology Description: <TopologyDescription id: 67d1da01da9a4539af49145e, topology_type: Unknown, servers: [<ServerDescription ('mongo-bot', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('mongo-bot:27017: [Errno 11001] getaddrinfo failed (configured timeouts: socketTimeoutMS: 20000.0ms, connectTimeoutMS: 20000.0ms)')>]>
+[2025-03-12 22:04:46,696] #DEBUG conf.py (49): logger active
