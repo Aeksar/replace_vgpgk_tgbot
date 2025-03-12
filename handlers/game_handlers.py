@@ -38,7 +38,7 @@ async def give_repl(call: CallbackQuery, state: FSMContext):
     if data:
         await call.message.answer(f'{data[0]}\n{data[1]}')
     else:
-        file = FSInputFile(path=vgpgk._docx, filename='norm-zameni.docx')
+        file = FSInputFile(path=vgpgk._docx, filename='zameni.docx')
         await call.message.answer_document(document=file, caption='Замен нет, но это не точно')
     await call.answer()
     await state.clear()
@@ -51,7 +51,7 @@ async def give_repl_msg(msg: Message, state: FSMContext):
     if data:
         await msg.answer(f'{data[0]}\n{data[1]}')
     else:
-        file = FSInputFile(path=vgpgk._docx, filename='norm-zameni.docx')
+        file = FSInputFile(path=vgpgk._docx, filename='zameni.docx')
         await msg.answer_document(document=file, caption='Замен нет, но это не точно')
         
     await state.clear()

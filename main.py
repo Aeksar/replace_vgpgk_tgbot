@@ -7,6 +7,8 @@ from dbs.mongo import mongo
 from dbs.conf_redis import get_redis_client
 from config.conf import environ
 from utils.vgpgk import sheduled_replace
+
+
 redis_client = get_redis_client()
 storage = RedisStorage(redis=redis_client)
 

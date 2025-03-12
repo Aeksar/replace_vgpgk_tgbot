@@ -4,6 +4,8 @@
 
 .env
 
+mongo.env
+
 data/
 
 .pytest_cache/

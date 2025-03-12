@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3'
 
 services:
   mongo-bot:
@@ -8,10 +8,22 @@ services:
       - mongo.env
     ports:
       - 27017:27017
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis-bot:
     image: redis:latest
     container_name: redis-bot
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   bot:
     build: .
@@ -19,8 +31,10 @@ services:
     env_file:
       - .env
     depends_on:
-      - mongo-bot
-      - redis-bot
+      mongo-bot:
+        condition: service_healthy
+      redis-bot:
+        condition: service_healthy
       
 
 

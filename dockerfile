@@ -9,4 +9,4 @@ RUN pip install --no-cache-di -r requirements.txt
 
 COPY . .
 
-RUN ["python3", "main.py"]
+CMD ["python3", "main.py"]

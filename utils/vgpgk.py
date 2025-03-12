@@ -15,9 +15,9 @@ from dbs.mongo import Group, mongo
 class vgpgk:
 
     _url = "https://vgpgk.ru/raspisanie/vgpgk-zameny-1-korpus.doc?v=2023011141816"
-    _doc = os.path.abspath('.\\files\\zameni.doc')
-    _docx = os.path.abspath('.\\files\\zameni.docx')
-    _hash_file = os.path.abspath('.\\files\\zameni.doc.sha256')
+    _doc = os.path.abspath('./files/zameni.doc')
+    _docx = os.path.abspath('./files/zameni.docx')
+    _hash_file = os.path.abspath('./files/zameni.doc.sha256')
     client = get_redis_client()
     
     
@@ -96,7 +96,7 @@ class vgpgk:
             if not os.path.exists(doc_path):
                 logger.error(f"Файл не найден: {doc_path}")
 
-            # soffice_path = r"C:\Program Files\LibreOffice\program\soffice.exe"
+            # soffice = r"C:\Program Files\LibreOffice\program\soffice.exe"
             # if not os.path.exists(soffice_path):
             #     logger.error("LibreOffice не установлен по указанному пути.")
             
@@ -117,6 +117,7 @@ class vgpgk:
             logger.info(f"Успешно преобразовано: {doc_path} -> {docx_path}")
         except Exception as e:
             logger.error("Ошибка при конвертации файла")
+            raise
 
     @classmethod
     def get_replace(cls, group_name: str) -> Optional[List[str]]:
@@ -127,21 +128,21 @@ class vgpgk:
             for row_i in range(len(table.rows)):
                 for col_i in range(len(table.columns)):
                     ans = table.cell(row_i, col_i).text
+                    logger.debug(F"ТЕКСТ: {ans}\nСТРОКА:{row_i} СТОБЕЦ {col_i}")
                     if ans.startswith(group_name):
                         group = table.cell(row_i, col_i).text
                         replace = table.cell(row_i+1, col_i).text
                         find = True
                     if find:
+                        logger.info(f"для группы {group} найдены замены {replace}")
                         return [group, replace]
-                    
+        logger.debug(f"ЗАМЕНЫ ДЛЯ {group_name} НЕ НАЙДЕНЫ")  
         return None
 
 
 
-async def sheduled_replace(bot: Bot, interval: int = 1800, __pupupu: list = []):
-    if __pupupu:
-        return
-    __pupupu.append(1)
+async def sheduled_replace(bot: Bot, interval: int = 1800):
+
     while True:
         try:
             await asyncio.sleep(interval)
@@ -153,11 +154,11 @@ async def sheduled_replace(bot: Bot, interval: int = 1800, __pupupu: list = []):
                         await bot.send_message(chat_id=chat, text=f'{group_replace[0]}\n{group_replace[1]}')
                 logger.info("Рассылка отправлена")
             else:
-                # groups = await mongo.get_all_groups()
-                # for group in groups:
-                #     group_replace = vgpgk.get_replace(group.group_name)
-                #     for chat in group.chats:
-                #         await bot.send_message(chat_id=chat, text='Файл с заменами не был изменен')
+                groups = await mongo.get_all_groups()
+                for group in groups:
+                    group_replace = vgpgk.get_replace(group.group_name)
+                    for chat in group.chats:
+                        await bot.send_message(chat_id=chat, text=f'{group_replace[0]}\n{group_replace[1]}')
                 logger.info('Замены не изменились, рассылка не отправлена')
 
         except Exception as e:
