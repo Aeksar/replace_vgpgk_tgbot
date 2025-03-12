@@ -96,12 +96,12 @@ class vgpgk:
             if not os.path.exists(doc_path):
                 logger.error(f"Файл не найден: {doc_path}")
 
-            soffice = r"C:\Program Files\LibreOffice\program\soffice.exe"
-            if not os.path.exists(soffice):
-                logger.error("LibreOffice не установлен по указанному пути.")
+            # soffice = r"C:\Program Files\LibreOffice\program\soffice.exe"
+            # if not os.path.exists(soffice):
+            #     logger.error("LibreOffice не установлен по указанному пути.")
             
             command = [
-                soffice,
+                "soffice",
                 "--headless",
                 "--convert-to",
                 "docx",
