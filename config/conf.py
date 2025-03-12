@@ -13,7 +13,10 @@ class Environ(BaseSettings):
     R_PORT: int
     R_HOST: str
     R_DB: int
+    R_PASS: str
+    R_USER: str
     
+
     MONGO_URL: str
     
     
