@@ -34,7 +34,7 @@ async def run_repl(msg: Message, state: FSMContext):
 
 @game_rout.callback_query(F.data == 'ib-211')
 async def give_repl(call: CallbackQuery, state: FSMContext):
-    data = vgpgk.get_replace('ИБ-211')
+    data = await vgpgk.get_replace('ИБ-211')
     if data:
         await call.message.answer(f'{data[0]}\n{data[1]}')
     else:
@@ -47,7 +47,7 @@ async def give_repl(call: CallbackQuery, state: FSMContext):
 @game_rout.message(BotStates.replaces, GroupFilter())
 async def give_repl_msg(msg: Message, state: FSMContext):
     group = msg.text.upper()
-    data = vgpgk.get_replace(group)
+    data = await vgpgk.get_replace(group)
     if data:
         await msg.answer(f'{data[0]}\n{data[1]}')
     else:
@@ -126,5 +126,5 @@ async def new_repl(msg: Message):
     res = await vgpgk.download_replace()
     if res:
         await msg.answer('замены успешно обновлены')
-    else:
-        await msg.answer('замены не были обновлены')
+        return
+    await msg.answer('замены не были обновлены')

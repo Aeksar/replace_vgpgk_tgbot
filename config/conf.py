@@ -14,6 +14,10 @@ class Environ(BaseSettings):
     R_HOST: str
     R_DB: int
     
+    Y_TOKEN: str
+    Y_ID: str
+    Y_SECRET: str
+    
     MONGO_URL: str
     
     

@@ -1,4 +1,4 @@
-import requests
+from io import BytesIO
 from docx import Document
 from aiogram import Bot
 from typing import Optional, List
@@ -11,15 +11,19 @@ import os
 from config.conf import logger
 from dbs.conf_redis import get_redis_client
 from dbs.mongo import Group, mongo
+from dbs.yandex_cloud import Cloud
 
 class vgpgk:
 
     _url = "https://vgpgk.ru/raspisanie/vgpgk-zameny-1-korpus.doc?v=2023011141816"
-    _doc = os.path.abspath(r'.\files\zameni.doc')
-    _docx = os.path.abspath(r'.\files\zameni.docx')
-    _hash_file = os.path.abspath('./files/zameni.doc.sha256')
+    _doc = os.path.abspath('./files/zameni.doc')
+    _docx = os.path.abspath('./files/zameni.docx')
+    __not_updated = True
+    # _doc = os.path.abspath(r'.\files\zameni.doc')
+    # _docx = os.path.abspath(r'.\files\zameni.docx')
+
     client = get_redis_client()
-    
+    cloud = Cloud()
     
     @classmethod
     def _calculate_sha256(cls, filepath: str) -> str:
@@ -78,14 +82,15 @@ class vgpgk:
             if new_hash != old_hash:
                 await cls._save_hash(new_hash)
                 cls.convert_doc_to_docx(cls._doc, cls._docx)
+                await cls.cloud.upload(cls._docx)
+                cls.__not_updated = False
                 logger.info(f'Замены обновлены\n{new_hash}\n{old_hash}')
                 return True
             elif new_hash == old_hash:
                  logger.info('Замены не были изменены')
-                 return False
             else:
                 logger.warning('Проблемы с заменами')
-                return False
+            cls.__not_updated = True
         except Exception as e:
             logger.error(f"Ошибка при скачивании файла: {e}")
             return False
@@ -97,9 +102,7 @@ class vgpgk:
                 logger.error(f"Файл не найден: {doc_path}")
 
             soffice = r"C:\Program Files\LibreOffice\program\soffice.exe"
-            if not os.path.exists(soffice):
-                logger.error("LibreOffice не установлен по указанному пути.")
-            
+
             command = [
                 soffice,
                 "--headless",
@@ -112,7 +115,7 @@ class vgpgk:
             subprocess.run(command, check=True, capture_output=True)
 
             if not os.path.exists(docx_path):
-                logger.error(f"Не удалось преобразовать {doc_path} в {docx_path}. Проверьте логи LibreOffice.")
+                logger.error(f"Не удалось преобразовать {doc_path} в {docx_path}")
 
             logger.info(f"Успешно преобразовано: {doc_path} -> {docx_path}")
         except Exception as e:
@@ -120,13 +123,20 @@ class vgpgk:
             raise
 
     @classmethod
-    def get_replace(cls, group_name: str) -> Optional[List[str]]:
+    async def get_replace(cls, group_name: str) -> Optional[List[str]]:
         find = False
-        document = Document(cls._docx)
-
+        
+        buf = await cls.cloud.download()
+        document = Document(buf)
+        if await cls.client.get(group_name) and cls.__not_updated:
+            zam = await cls.client.get(group_name)
+            if zam:
+                logger.debug(f"замены для {group_name} взяты из кеша: {zam}")
+                return [group_name, zam]
         for table in document.tables:
             for row_i in range(len(table.rows)):
                 for col_i in range(len(table.columns)):
+                    logger.debug(table.cell(row_i, col_i).text)
                     ans = table.cell(row_i, col_i).text
                     logger.debug(F"ТЕКСТ: {ans}\nСТРОКА:{row_i} СТОБЕЦ {col_i}")
                     if ans.startswith(group_name):
@@ -135,7 +145,9 @@ class vgpgk:
                         find = True
                     if find:
                         logger.info(f"для группы {group} найдены замены {replace}")
+                        await cls.client.set(group_name, replace, 86400)
                         return [group, replace]
+        await cls.client.set(group_name, None)
         logger.debug(f"ЗАМЕНЫ ДЛЯ {group_name} НЕ НАЙДЕНЫ")  
         return None
 
@@ -149,14 +161,14 @@ async def sheduled_replace(bot: Bot, interval: int = 1800):
             if await vgpgk.download_replace():
                 groups = await mongo.get_all_groups()
                 for group in groups:
-                    group_replace = vgpgk.get_replace(group.group_name)
+                    group_replace = await vgpgk.get_replace(group.group_name)
                     for chat in group.chats:
                         await bot.send_message(chat_id=chat, text=f'{group_replace[0]}\n{group_replace[1]}')
                 logger.info("Рассылка отправлена")
             else:
                 groups = await mongo.get_all_groups()
                 for group in groups:
-                    group_replace = vgpgk.get_replace(group.group_name)
+                    group_replace = await vgpgk.get_replace(group.group_name)
                     for chat in group.chats:
                         await bot.send_message(chat_id=chat, text=f'{group_replace[0]}\n{group_replace[1]}')
                 logger.info('Замены не изменились, рассылка не отправлена')

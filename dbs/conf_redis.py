@@ -11,7 +11,7 @@ def get_redis_client(host=environ.R_HOST, port=environ.R_PORT, db=environ.R_DB) 
             db=db,
             decode_responses=True
         )
-        logger.debug('Установленно соединение с Redis')
+        logger.debug(f'Установленно соединение с redis://{host}:{port}')
         return redis_conn
     
     except Exception as e:
@@ -27,10 +27,10 @@ if __name__ == "__main__":
             )
 
             
-            await redis_client.set('mykey', 'myvalue')
-            value = await redis_client.get('mykey')
-            await redis_client.delete('mykey')
-            print(f"Значение по ключу 'mykey': {value}")
+            await redis_client.set('key', 'val')
+            value = await redis_client.get('key')
+            await redis_client.delete('key')
+            print(f"Значение по ключу 'key': {value}")
 
         except Exception as e:
             print(f"Не удалось установить соединение с Redis. {e}")

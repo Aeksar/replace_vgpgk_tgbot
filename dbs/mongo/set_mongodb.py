@@ -68,7 +68,7 @@ class Mongo:
         doc = await Mongo.get_group(group_name)
         if doc:
             if chat_id in doc.chats:
-                doc.chats.remove(chat_id)
+                doc.chats.remove(chat_id) 
                 logger.debug(f"Группа {group_name} найдена, чат {chat_id} удален")
                 
             if not doc.chats:
