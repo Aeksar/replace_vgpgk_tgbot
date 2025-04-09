@@ -23,38 +23,40 @@
 
 ## Установка
 
+
+
 1.  **Клонируйте репозиторий:**
 
     ```bash
-    git clone [ссылка на ваш репозиторий]
-    cd [название репозитория]
+    git clone https://github.com/Aeksar/replace_vgpgk_tgbot.git
     ```
 
-2.  **Создайте виртуальное окружение (рекомендуется):**
+2.  **Настройте файлы `.env` и  `mongo.env` в корневой директории:**
 
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # Linux/macOS
-    venv\Scripts\activate  # Windows
-    ```
-
-3.  **Установите зависимости:**
-
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  **Настройте файл `.env`:**
-
-    Создайте файл `.env` в корневой директории проекта и добавьте следующие переменные:
+    В файле`.env` должны быть следующие переменные:
 
     ```
     TELEGRAM_BOT_TOKEN=[ваш токен бота]
-    ADMIN_ID=[ваш Telegram ID] (опционально, для получения уведомлений об ошибках)
-    DATABASE_URL=[строка подключения к вашей базе данных] (например, sqlite:///data.db)
-    TARGET_URL=[URL сайта колледжа с заменами]
+    R_PORT= [порт редиса]
+    R_HOST= [хост редиса]
+    R_DB= [База данных в редисе]
+    
+    MONGO_URL=[url базы данных в монго]
     ```
 
-    Замените значения в квадратных скобках на свои.
+    В файле`mongo.env` должны быть следующие переменные:
+
+    ```
+    MONGO_INITDB_ROOT_USERNAME=[имя пользователя]
+    
+    MONGO_INITDB_ROOT_PASSWORD=[пароль]
+    ```
+
+3. **Соберите контейнер**
+
+   ```bash
+    docker compose up --build
+    ```
+    
 
 
