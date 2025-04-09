@@ -53,7 +53,7 @@
     MONGO_INITDB_ROOT_PASSWORD=[пароль]
     ```
 
-3. **Соберите контейнер**
+3. **Соберите и запустите контейнер**
 
    ```bash
     docker compose up --build
