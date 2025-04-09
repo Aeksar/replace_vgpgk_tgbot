@@ -6,8 +6,6 @@ from io import BytesIO
 class Cloud:
 
     def __init__(self):
-        
-
         self.disk = yadisk_async.YaDisk(token=environ.Y_TOKEN)
 
 

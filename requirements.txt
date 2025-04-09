@@ -10,3 +10,5 @@ redis
 beanie
 aioredis
 yadisk-async==1.3.2
+mammoth
+bs4

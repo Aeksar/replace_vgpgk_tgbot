@@ -54,12 +54,12 @@ class Mongo:
                 await doc.save()
                 logger.debug(f"Группа {group_name} найдена, чат {chat_id} добавлен")
                 return True
-            else:
-                doc = await Mongo.create_group(group_name, chat_id)
-                doc.chats.append(chat_id)
-                await doc.save()
-                logger.debug(f"Группа {group_name} была создана, и добавлен чат {chat_id}")
-                return True
+            
+            doc = await Mongo.create_group(group_name, chat_id)
+            doc.chats.append(chat_id)
+            await doc.save()
+            logger.debug(f"Группа {group_name} была создана, и добавлен чат {chat_id}")
+            return True
         except Exception as e:
             logger.error(f"Ошибка при добавлении группы: {e}")
             return False

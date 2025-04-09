@@ -2,11 +2,15 @@ from io import BytesIO
 from docx import Document
 from aiogram import Bot
 from typing import Optional, List
+from mammoth import convert_to_html
+from bs4 import BeautifulSoup
 import asyncio
 import aiohttp
 import hashlib
 import subprocess
+import traceback
 import os
+import re
 
 from config.conf import logger
 from dbs.conf_redis import get_redis_client
@@ -18,10 +22,11 @@ class vgpgk:
     _url = "https://vgpgk.ru/raspisanie/vgpgk-zameny-1-korpus.doc?v=2023011141816"
     _doc = os.path.abspath('./files/zameni.doc')
     _docx = os.path.abspath('./files/zameni.docx')
-    __not_updated = True
+    
     # _doc = os.path.abspath(r'.\files\zameni.doc')
     # _docx = os.path.abspath(r'.\files\zameni.docx')
-
+    
+    __not_updated = True
     client = get_redis_client()
     cloud = Cloud()
     
@@ -101,10 +106,10 @@ class vgpgk:
             if not os.path.exists(doc_path):
                 logger.error(f"Файл не найден: {doc_path}")
 
-            soffice = r"C:\Program Files\LibreOffice\program\soffice.exe"
+            # soffice = r"C:\Program Files\LibreOffice\program\soffice.exe"
 
             command = [
-                soffice,
+                "soffice",
                 "--headless",
                 "--convert-to",
                 "docx",
@@ -121,7 +126,42 @@ class vgpgk:
         except Exception as e:
             logger.error("Ошибка при конвертации файла")
             raise
+    
+    
+    @classmethod
+    def convert_docx_to_html(cls):
+        with open(cls._docx, "rb") as f:
+            result = convert_to_html(f)
+            html = result.value
+        return html
 
+    @classmethod
+    async def parse_replace_from_html(cls, html_str: str) -> dict[str, str]:
+        soup = BeautifulSoup(html_str, 'html.parser')
+        table = soup.find('table')
+        data = []
+        
+        for row in table.find_all('tr'):
+            col_data = []
+            for col in row.find_all('td'):
+                text = '\n'.join(p.text for p in col.find_all('p'))
+                if text:
+                    col_data.append(text)
+            data.append(col_data)
+
+        group_name = re.compile(r'^[А-Я]{2}-[0-9]{3}')
+        replace = dict()
+        
+        for row_i in range(len(data)):
+            col = data[row_i]
+            for col_i in range(len(col)):
+                if re.match(group_name, data[row_i][col_i][0:6]):
+                    replace[data[row_i][col_i]] = data[row_i+1][col_i]
+                    await cls.client.set(data[row_i][col_i], data[row_i+1][col_i])
+        
+        return replace
+    
+    
     @classmethod
     async def get_replace(cls, group_name: str) -> Optional[List[str]]:
         find = False
@@ -138,7 +178,8 @@ class vgpgk:
                 for col_i in range(len(table.columns)):
                     logger.debug(table.cell(row_i, col_i).text)
                     ans = table.cell(row_i, col_i).text
-                    logger.debug(F"ТЕКСТ: {ans}\nСТРОКА:{row_i} СТОБЕЦ {col_i}")
+                    logger.debug(f"ТЕКСТ: {ans}\nСТРОКА:{row_i} СТОБЕЦ {col_i}")
+                    print(f"ТЕКСТ: {ans}\nСТРОКА:{row_i} СТОБЕЦ {col_i}")
                     if ans.startswith(group_name):
                         group = table.cell(row_i, col_i).text
                         replace = table.cell(row_i+1, col_i).text
@@ -147,7 +188,7 @@ class vgpgk:
                         logger.info(f"для группы {group} найдены замены {replace}")
                         await cls.client.set(group_name, replace, 86400)
                         return [group, replace]
-        await cls.client.set(group_name, None)
+                    
         logger.debug(f"ЗАМЕНЫ ДЛЯ {group_name} НЕ НАЙДЕНЫ")  
         return None
 
@@ -159,22 +200,28 @@ async def sheduled_replace(bot: Bot, interval: int = 1800):
         try:
             await asyncio.sleep(interval)
             if await vgpgk.download_replace():
+                html_content = vgpgk.convert_docx_to_html()
+                replaces = await vgpgk.parse_replace_from_html(html_content)
                 groups = await mongo.get_all_groups()
                 for group in groups:
-                    group_replace = await vgpgk.get_replace(group.group_name)
+                    group_replace = replaces.get(group.group_name)
                     for chat in group.chats:
-                        await bot.send_message(chat_id=chat, text=f'{group_replace[0]}\n{group_replace[1]}')
+                        nani = 'Замен нет и это точно'
+                        await bot.send_message(chat_id=chat, text=f'{group.group_name}\n{group_replace if group_replace else nani}')
                 logger.info("Рассылка отправлена")
             else:
-                groups = await mongo.get_all_groups()
-                for group in groups:
-                    group_replace = await vgpgk.get_replace(group.group_name)
-                    for chat in group.chats:
-                        await bot.send_message(chat_id=chat, text=f'{group_replace[0]}\n{group_replace[1]}')
+                # html_content = vgpgk.convert_docx_to_html()
+                # replaces = await vgpgk.parse_replace_from_html(html_content)
+                # groups = await mongo.get_all_groups()
+                # for group in groups:
+                #     group_replace = replaces.get(group.group_name)
+                #     for chat in group.chats:
+                #         nani = 'Замен нет и это точно'
+                #         await bot.send_message(chat_id=chat, text=f'{group.group_name}\n{group_replace if group_replace else nani}')
                 logger.info('Замены не изменились, рассылка не отправлена')
 
-        except Exception as e:
-            logger.error(f"Ошибка при автоматическом обновлении замен {e}")
+        except Exception:
+            logger.error(f"Ошибка при автоматическом обновлении замен {traceback.format_exc()}")
             
 
             

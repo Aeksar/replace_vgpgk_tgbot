@@ -1,8 +1,7 @@
-version: '3'
 
 services:
   mongo-bot:
-    image: mongo:8.0.5
+    image: mongo:latest
     container_name: mongo-bot
     env_file:
       - mongo.env
@@ -30,6 +29,8 @@ services:
     container_name: bot
     env_file:
       - .env
+    volumes:
+      - ./files:/replace_bot/files
     depends_on:
       mongo-bot:
         condition: service_healthy
